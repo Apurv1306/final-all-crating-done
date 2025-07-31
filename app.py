@@ -144,16 +144,32 @@ class ComplimentGenerator:
         return compliment.format(name=name)
 
 
+
 class EdgeTTSHelper:
     """Helper class for instant Edge-TTS with a slightly slower cute female voice"""
 
     def __init__(self):
-        pygame.mixer.pre_init(frequency=22050, size=-16, channels=2, buffer=256)
-        pygame.mixer.init()
+        self.enabled = AUDIO_ENABLED
         self.selected_voice = "en-IN-NeerjaNeural"
-        Logger(f"[INFO] EdgeTTS initialized with voice: {self.selected_voice}")
+        self.pygame = None
+
+        if self.enabled:
+            try:
+                import pygame
+                pygame.mixer.pre_init(frequency=22050, size=-16, channels=2, buffer=256)
+                pygame.mixer.init()
+                self.pygame = pygame
+                Logger(f"[INFO] EdgeTTS initialized with audio ON, voice: {self.selected_voice}")
+            except Exception as e:
+                Logger(f"[WARN] Audio initialization failed: {e}")
+                self.enabled = False
+        else:
+            Logger(f"[INFO] EdgeTTS initialized with audio OFF")
 
     def speak(self, text: str) -> None:
+        if not self.enabled:
+            Logger(f"[DEBUG] Audio disabled, not speaking: {text}")
+            return
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -164,24 +180,23 @@ class EdgeTTSHelper:
             Logger(f"[ERROR] Instant TTS error: {e}")
 
     async def _async_speak(self, text: str) -> None:
+        if not self.enabled:
+            return
         try:
             communicate = edge_tts.Communicate(text=text, voice=self.selected_voice, rate="+8%", pitch="+10Hz")
             audio_data = b""
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
                     audio_data += chunk["data"]
-
-            if audio_data:
+            if audio_data and self.pygame:
                 audio_buffer = io.BytesIO(audio_data)
-                pygame.mixer.music.load(audio_buffer, "mp3")
-                pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
+                self.pygame.mixer.music.load(audio_buffer, "mp3")
+                self.pygame.mixer.music.play()
+                while self.pygame.mixer.music.get_busy():
                     await asyncio.sleep(0.1)
                 Logger("[INFO] Audio playing INSTANTLY")
         except Exception as e:
             Logger(f"[ERROR] Edge-TTS async speak error: {e}")
-
-
 class FaceAppBackend:
     def __init__(self):
         self.known_faces_dir: str = str(Path("./known_faces"))
