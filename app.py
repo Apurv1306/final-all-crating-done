@@ -1,4 +1,6 @@
 import glob
+import os
+AUDIO_ENABLED = os.environ.get("AUDIO_ENABLED", "1") not in ("0", "false", "no")
 import json
 import os
 import random
