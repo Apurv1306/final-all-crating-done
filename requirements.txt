@@ -10,3 +10,4 @@ edge-tts
 pygame
 python-dotenv
 gunicorn
+pytest
