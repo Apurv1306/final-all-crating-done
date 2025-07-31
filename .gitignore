@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.env
+uploads/
+logs/
+known_faces/*.json
